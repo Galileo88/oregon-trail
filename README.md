@@ -90,3 +90,11 @@ Open `http://localhost:8080` on a phone, then install to home screen.
 ### Next integration step
 
 Replace the placeholder canvas setup in `pwa/src/main.js` with the actual browser game loop/rendering layer.
+
+### Deploy on Render
+
+A `render.yaml` blueprint is included at the repo root for deploying the PWA as a static site.
+
+1. Push this repo to GitHub.
+2. In Render, create a new **Blueprint** service and select the repository.
+3. Render will detect `render.yaml`, serve from `pwa/`, and publish the site.
