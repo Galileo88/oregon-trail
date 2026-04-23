@@ -67,3 +67,21 @@ body {
   filter: blur(2px) brightness(0.45);
   pointer-events: none;
 }
+
+
+.game-stage.ready #gameCanvas {
+  cursor: pointer;
+  border-color: color-mix(in srgb, var(--accent), white 18%);
+  box-shadow: 0 0 0 1px rgba(68, 167, 255, 0.35), 0 0 24px rgba(68, 167, 255, 0.3);
+  animation: ready-pulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes ready-pulse {
+  from {
+    box-shadow: 0 0 0 1px rgba(68, 167, 255, 0.2), 0 0 16px rgba(68, 167, 255, 0.15);
+  }
+
+  to {
+    box-shadow: 0 0 0 1px rgba(68, 167, 255, 0.45), 0 0 30px rgba(68, 167, 255, 0.32);
+  }
+}

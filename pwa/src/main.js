@@ -1,12 +1,14 @@
 const root = document.documentElement;
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+const gameStage = document.getElementById('gameStage');
 
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
 
 const state = {
   isPortrait: false,
+  hasStarted: false,
   status: 'Loading…',
   statusDetail: 'Preparing game systems',
   stars: []
@@ -103,17 +105,56 @@ async function lockLandscape() {
   }
 }
 
+async function requestFullscreen() {
+  const el = document.documentElement;
+  try {
+    if (el.requestFullscreen && !document.fullscreenElement) {
+      await el.requestFullscreen({ navigationUI: 'hide' });
+    }
+  } catch {
+    // Fullscreen is optional and not available on every platform.
+  }
+}
+
 async function registerSW() {
   if ('serviceWorker' in navigator) {
     await navigator.serviceWorker.register('./sw.js', { scope: './' });
   }
 }
 
+function updateStartPrompt() {
+  gameStage.classList.toggle('ready', !state.hasStarted && state.status === 'Game ready');
+}
+
+async function startGame() {
+  if (state.hasStarted || state.status !== 'Game ready') {
+    return;
+  }
+
+  state.hasStarted = true;
+  updateStartPrompt();
+  state.status = 'Launching…';
+  state.statusDetail = 'Systems online. Good luck, captain.';
+
+  await Promise.allSettled([requestFullscreen(), lockLandscape()]);
+}
+
+function bindStartHandlers() {
+  gameStage.addEventListener('pointerdown', startGame);
+  gameStage.addEventListener('touchend', startGame, { passive: true });
+  window.addEventListener('keydown', (event) => {
+    if (event.code === 'Enter' || event.code === 'Space') {
+      startGame();
+    }
+  });
+}
+
 async function bootstrapGame() {
   state.status = 'Game ready';
   state.statusDetail = 'Tap to begin your journey';
+  updateStartPrompt();
 
-  await Promise.allSettled([lockLandscape(), registerSW()]);
+  await registerSW();
 }
 
 window.addEventListener('resize', () => {
@@ -126,6 +167,7 @@ window.addEventListener('load', async () => {
   updateOrientationState();
   sizeCanvas();
   seedStars();
+  bindStartHandlers();
   startLoadingAnimation();
 
   try {
