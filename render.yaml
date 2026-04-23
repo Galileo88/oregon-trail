@@ -1,0 +1,5 @@
+staticSites:
+  - name: andromeda-trail-pwa
+    rootDir: pwa
+    publishPath: .
+    pullRequestPreviewsEnabled: true
