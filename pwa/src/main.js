@@ -5,13 +5,27 @@ const gameStage = document.getElementById('gameStage');
 
 const DESIGN_WIDTH = 1280;
 const DESIGN_HEIGHT = 720;
+const SHIP_SPEED = 440;
 
 const state = {
   isPortrait: false,
   hasStarted: false,
   status: 'Loading…',
   statusDetail: 'Preparing game systems',
-  stars: []
+  stars: [],
+  lastFrameAt: 0,
+  input: {
+    up: false,
+    down: false,
+    left: false,
+    right: false
+  },
+  ship: {
+    x: DESIGN_WIDTH * 0.2,
+    y: DESIGN_HEIGHT * 0.5,
+    radius: 28
+  },
+  asteroids: []
 };
 
 function updateOrientationState() {
@@ -46,13 +60,16 @@ function seedStars() {
   }));
 }
 
-function drawLoadingFrame() {
-  if (!ctx) {
-    return;
-  }
+function seedAsteroids() {
+  state.asteroids = Array.from({ length: 7 }, (_, index) => ({
+    x: DESIGN_WIDTH + index * 240,
+    y: 80 + Math.random() * (DESIGN_HEIGHT - 160),
+    radius: 20 + Math.random() * 30,
+    speed: 130 + Math.random() * 120
+  }));
+}
 
-  ctx.clearRect(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT);
-
+function drawBackground() {
   const gradient = ctx.createLinearGradient(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT);
   gradient.addColorStop(0, '#050a1f');
   gradient.addColorStop(1, '#121b39');
@@ -71,6 +88,15 @@ function drawLoadingFrame() {
     ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
     ctx.fill();
   }
+}
+
+function drawLoadingFrame() {
+  if (!ctx) {
+    return;
+  }
+
+  ctx.clearRect(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT);
+  drawBackground();
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffffff';
@@ -86,9 +112,84 @@ function drawLoadingFrame() {
   ctx.fillText(state.statusDetail, DESIGN_WIDTH / 2, DESIGN_HEIGHT / 2 + 44);
 }
 
-function startLoadingAnimation() {
-  function loop() {
-    drawLoadingFrame();
+function drawShip() {
+  const { x, y, radius } = state.ship;
+
+  ctx.save();
+  ctx.translate(x, y);
+
+  ctx.fillStyle = '#c2ddff';
+  ctx.beginPath();
+  ctx.moveTo(radius + 8, 0);
+  ctx.lineTo(-radius + 8, -radius * 0.66);
+  ctx.lineTo(-radius * 0.7, 0);
+  ctx.lineTo(-radius + 8, radius * 0.66);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = '#3b88ff';
+  ctx.beginPath();
+  ctx.arc(-radius * 0.25, 0, radius * 0.3, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function updateGameplay(dt) {
+  const { input, ship } = state;
+  const xAxis = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+  const yAxis = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+
+  ship.x += xAxis * SHIP_SPEED * dt;
+  ship.y += yAxis * SHIP_SPEED * dt;
+
+  ship.x = Math.max(ship.radius, Math.min(DESIGN_WIDTH - ship.radius, ship.x));
+  ship.y = Math.max(ship.radius, Math.min(DESIGN_HEIGHT - ship.radius, ship.y));
+
+  for (const asteroid of state.asteroids) {
+    asteroid.x -= asteroid.speed * dt;
+    if (asteroid.x < -asteroid.radius - 10) {
+      asteroid.x = DESIGN_WIDTH + asteroid.radius + Math.random() * 280;
+      asteroid.y = 80 + Math.random() * (DESIGN_HEIGHT - 160);
+      asteroid.radius = 20 + Math.random() * 30;
+      asteroid.speed = 130 + Math.random() * 120;
+    }
+  }
+}
+
+function drawGameplayFrame(dt) {
+  ctx.clearRect(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT);
+  drawBackground();
+
+  updateGameplay(dt);
+
+  for (const asteroid of state.asteroids) {
+    ctx.fillStyle = '#8ca1bd';
+    ctx.beginPath();
+    ctx.arc(asteroid.x, asteroid.y, asteroid.radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  drawShip();
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(235, 245, 255, 0.95)';
+  ctx.font = '500 22px "Segoe UI", system-ui, sans-serif';
+  ctx.fillText('Flight controls: touch/drag left side to steer', 26, 40);
+  ctx.fillText('or use arrow keys on desktop', 26, 70);
+}
+
+function startRenderLoop() {
+  function loop(timestamp) {
+    const dt = Math.min(0.05, Math.max(0, (timestamp - state.lastFrameAt) / 1000 || 0));
+    state.lastFrameAt = timestamp;
+
+    if (state.hasStarted) {
+      drawGameplayFrame(dt);
+    } else {
+      drawLoadingFrame();
+    }
+
     requestAnimationFrame(loop);
   }
 
@@ -126,6 +227,30 @@ function updateStartPrompt() {
   gameStage.classList.toggle('ready', !state.hasStarted && state.status === 'Game ready');
 }
 
+function applyTouchDirection(touch) {
+  if (!touch) {
+    return;
+  }
+
+  const rect = canvas.getBoundingClientRect();
+  const touchX = touch.clientX - rect.left;
+  const touchY = touch.clientY - rect.top;
+  const normalizedX = touchX / rect.width;
+  const normalizedY = touchY / rect.height;
+
+  state.input.left = normalizedX < 0.4;
+  state.input.right = normalizedX > 0.6;
+  state.input.up = normalizedY < 0.4;
+  state.input.down = normalizedY > 0.6;
+}
+
+function resetTouchDirection() {
+  state.input.up = false;
+  state.input.down = false;
+  state.input.left = false;
+  state.input.right = false;
+}
+
 async function startGame() {
   if (state.hasStarted || state.status !== 'Game ready') {
     return;
@@ -133,18 +258,75 @@ async function startGame() {
 
   state.hasStarted = true;
   updateStartPrompt();
-  state.status = 'Launching…';
-  state.statusDetail = 'Systems online. Good luck, captain.';
+  state.status = 'Live';
+  state.statusDetail = 'Touch controls active';
+  seedAsteroids();
 
   await Promise.allSettled([requestFullscreen(), lockLandscape()]);
 }
 
 function bindStartHandlers() {
-  gameStage.addEventListener('pointerdown', startGame);
-  gameStage.addEventListener('touchend', startGame, { passive: true });
-  window.addEventListener('keydown', (event) => {
-    if (event.code === 'Enter' || event.code === 'Space') {
+  gameStage.addEventListener('pointerdown', () => {
+    startGame();
+  });
+
+  canvas.addEventListener(
+    'touchstart',
+    (event) => {
       startGame();
+      applyTouchDirection(event.touches[0]);
+      event.preventDefault();
+    },
+    { passive: false }
+  );
+
+  canvas.addEventListener(
+    'touchmove',
+    (event) => {
+      if (!state.hasStarted) {
+        return;
+      }
+
+      applyTouchDirection(event.touches[0]);
+      event.preventDefault();
+    },
+    { passive: false }
+  );
+
+  canvas.addEventListener('touchend', resetTouchDirection, { passive: true });
+
+  window.addEventListener('keydown', (event) => {
+    if (!state.hasStarted && (event.code === 'Enter' || event.code === 'Space')) {
+      startGame();
+      return;
+    }
+
+    if (event.code === 'ArrowUp') {
+      state.input.up = true;
+    }
+    if (event.code === 'ArrowDown') {
+      state.input.down = true;
+    }
+    if (event.code === 'ArrowLeft') {
+      state.input.left = true;
+    }
+    if (event.code === 'ArrowRight') {
+      state.input.right = true;
+    }
+  });
+
+  window.addEventListener('keyup', (event) => {
+    if (event.code === 'ArrowUp') {
+      state.input.up = false;
+    }
+    if (event.code === 'ArrowDown') {
+      state.input.down = false;
+    }
+    if (event.code === 'ArrowLeft') {
+      state.input.left = false;
+    }
+    if (event.code === 'ArrowRight') {
+      state.input.right = false;
     }
   });
 }
@@ -168,7 +350,7 @@ window.addEventListener('load', async () => {
   sizeCanvas();
   seedStars();
   bindStartHandlers();
-  startLoadingAnimation();
+  startRenderLoop();
 
   try {
     await bootstrapGame();
