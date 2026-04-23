@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#050816" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Andromeda Trail" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/icon-192.svg" />
+    <link rel="stylesheet" href="src/styles.css" />
+    <title>Andromeda Trail Mobile</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section id="rotatePrompt" class="orientation-warning" aria-live="polite">
+        <h1>Rotate your device</h1>
+        <p>Andromeda Trail is designed for landscape play.</p>
+      </section>
+
+      <section id="gameStage" class="game-stage" aria-label="Game viewport">
+        <canvas id="gameCanvas" width="1280" height="720"></canvas>
+      </section>
+    </main>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>

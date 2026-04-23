@@ -66,3 +66,27 @@ Ajay Rajasekaran - User Interface
 Ilya Vaschillo - Testing
 
 Kinner Parikh - Lead Dev
+
+## Mobile PWA (landscape)
+
+A mobile-first Progressive Web App shell is included in `/pwa`.
+
+### Run locally
+
+```bash
+cd pwa
+python3 -m http.server 8080
+```
+
+Open `http://localhost:8080` on a phone, then install to home screen.
+
+### What's included
+
+- Web app manifest with `orientation: "landscape"`.
+- Service worker for offline caching.
+- Landscape-oriented game viewport (`16:9`) with portrait rotation prompt.
+- Runtime attempt to lock orientation via `screen.orientation.lock('landscape')` when supported.
+
+### Next integration step
+
+Replace the placeholder canvas setup in `pwa/src/main.js` with the actual browser game loop/rendering layer.
